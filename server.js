@@ -60,7 +60,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Сервер Node.js запущен на порту ${PORT}`);
 }).on('error', (err) => {
