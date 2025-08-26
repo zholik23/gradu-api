@@ -10,7 +10,7 @@ app.use(cors());
 // Рекомендуется использовать переменные окружения для безопасности.
 const config = {
     user: 'umizoomi',
-    password: 'zholikwws23!', 
+    password: 'Zholikwws23!', 
     server: 'umizoomi.database.windows.net',
     database: 'umizoomi_sql',
     options: {
@@ -18,6 +18,11 @@ const config = {
         trustServerCertificate: false 
     }
 };
+
+// Новый маршрут для главной страницы
+app.get('/', (req, res) => {
+    res.status(200).send('Сайт работает!');
+});
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
@@ -44,8 +49,8 @@ app.post('/api/login', async (req, res) => {
             res.status(200).json({ success: false, message: 'Неверный email или пароль' });
         }
     } catch (err) {
-        console.error('Ошибка базы данных:', err);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    console.error('Ошибка базы данных:', err);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
     } finally {
         sql.close(); // Всегда закрывайте соединение
     }
