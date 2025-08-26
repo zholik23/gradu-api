@@ -1,10 +1,14 @@
 const express = require('express');
 const sql = require('mssql');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Настройка для обслуживания статических файлов из папки 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
 // TODO: Замените на ваши учётные данные из Azure SQL Database.
 // Рекомендуется использовать переменные окружения для безопасности.
@@ -19,7 +23,7 @@ const config = {
     }
 };
 
-// Новый маршрут для главной страницы
+// Новый маршрут для главной страницы, который теперь является запасным
 app.get('/', (req, res) => {
     res.status(200).send('Сайт работает!');
 });
