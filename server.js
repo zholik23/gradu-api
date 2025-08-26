@@ -10,7 +10,7 @@ app.use(cors());
 // Рекомендуется использовать переменные окружения для безопасности.
 const config = {
     user: 'umizoomi',
-    password: 'Zholikwws23!', 
+    password: '{your_password_here}', 
     server: 'umizoomi.database.windows.net',
     database: 'umizoomi_sql',
     options: {
@@ -59,4 +59,10 @@ app.post('/api/login', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Сервер Node.js запущен на порту ${PORT}`);
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error('Ошибка: Порт уже используется. Перезапустите приложение или используйте другой порт.');
+    } else {
+        console.error('Ошибка запуска сервера:', err);
+    }
 });
