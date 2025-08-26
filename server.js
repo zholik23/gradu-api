@@ -6,10 +6,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// TODO: Замените на ваши учётные данные.
+// TODO: Замените на ваши учётные данные из Azure SQL Database.
+// Рекомендуется использовать переменные окружения для безопасности.
 const config = {
     user: 'umizoomi',
-    password: '{your_password_here}', 
+    password: 'zholikwws23!', 
     server: 'umizoomi.database.windows.net',
     database: 'umizoomi_sql',
     options: {
