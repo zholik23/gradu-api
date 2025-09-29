@@ -5,4 +5,3 @@ python/venv/
 node_modules/
 
 # Environment files
-.env
