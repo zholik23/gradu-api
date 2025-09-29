@@ -1,0 +1,227 @@
+[
+    {
+        "intent": "GET_MY_PROFILE",
+        "description": "Fetches the current user's own profile information.",
+        "keywords": ["show my profile", "what is my display name", "view my info"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT DisplayName, Username, Email FROM Users WHERE user_uuid = @user_uuid;",
+        "response_template": "Here is your profile: Name: {{#if results.0.DisplayName}}{{results.0.DisplayName}}{{else}}Not Set{{/if}}, Username: @{{results.0.Username}}, Email: {{results.0.Email}}."
+    },
+    {
+        "intent": "LIST_ALL_TASKS",
+        "description": "Fetches all active tasks for the current user.",
+        "keywords": ["show my tasks", "what are my tasks", "list tasks"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT t.name, s.DisplayName AS sender_display_name FROM task_test t LEFT JOIN Users s ON t.sender_uuid = s.user_uuid WHERE t.assignee_uuid = @user_uuid AND t.status NOT IN ('deleted', 'completed');",
+        "response_template": "OK, here are your active tasks: {{#each results}}'{{name}}' (from {{sender_display_name}}); {{/each}}{{^results}}You have no active tasks.{{/results}}"
+    },
+    {
+        "intent": "COUNT_ACTIVE_TASKS",
+        "description": "Counts the number of active tasks for the current user.",
+        "keywords": ["how many tasks do I have", "count my tasks"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT COUNT(*) as task_count FROM task_test WHERE assignee_uuid = @user_uuid AND status NOT IN ('deleted', 'completed');",
+        "response_template": "You have {{results.0.task_count}} active tasks."
+    },
+    {
+        "intent": "LIST_HIGH_PRIORITY_TASKS",
+        "description": "Lists only the tasks marked with high priority.",
+        "keywords": ["show important tasks", "what are my high priority tasks", "urgent tasks"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT name FROM task_test WHERE assignee_uuid = @user_uuid AND priority = 1 AND status NOT IN ('deleted', 'completed');",
+        "response_template": "Here are your high-priority tasks: {{#each results}}{{name}}; {{/each}}{{^results}}You have no high-priority tasks right now.{{/results}}"
+    },
+    {
+        "intent": "GET_TASKS_STARTING_TODAY",
+        "description": "Fetches tasks that are scheduled to start today.",
+        "keywords": ["tasks for today", "what starts today", "any new tasks today"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT name FROM task_test WHERE assignee_uuid = @user_uuid AND CAST(start_date AS DATE) = CAST(GETDATE() AS DATE) AND status NOT IN ('deleted', 'completed');",
+        "response_template": "Tasks starting today: {{#each results}}{{name}}; {{/each}}{{^results}}No tasks are scheduled to start today.{{/results}}"
+    },
+    {
+        "intent": "FIND_TASK_BY_NAME",
+        "description": "Searches for a specific task by a keyword in its name.",
+        "keywords": ["find task", "search for task", "where is my task about"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" },
+            { "name": "task_name", "type": "STRING", "source": "userInput", "prompt": "What is the name of the task you're looking for?" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT name, status FROM task_test WHERE assignee_uuid = @user_uuid AND name LIKE @task_name;",
+        "response_template": "I found these tasks matching that name: {{#each results}}'{{name}}' (Status: {{status}}); {{/each}}{{^results}}I couldn't find any tasks with that name.{{/results}}"
+    },
+    {
+        "intent": "LIST_ALL_MEDICATIONS",
+        "description": "Fetches all active medications for the user.",
+        "keywords": ["list my medications", "what medicine should I take", "show my prescriptions"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT name FROM medication_tasks WHERE assignee_uuid = @user_uuid AND status NOT IN ('deleted', 'completed');",
+        "response_template": "Your active medications are: {{#each results}}{{name}}; {{/each}}{{^results}}You have no active medications listed.{{/results}}"
+    },
+    {
+        "intent": "COUNT_MEDICATIONS",
+        "description": "Counts the number of active medications for the user.",
+        "keywords": ["how many medications am I on", "count my medicines"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT COUNT(*) as med_count FROM medication_tasks WHERE assignee_uuid = @user_uuid AND status NOT IN ('deleted', 'completed');",
+        "response_template": "You are currently on {{results.0.med_count}} different medications."
+    },
+    {
+        "intent": "GET_MEDICATIONS_BY_TIME",
+        "description": "Finds medications scheduled for a specific time of day.",
+        "keywords": ["morning medications", "evening medicine", "meds for noon"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" },
+            { "name": "time_of_day", "type": "TIME_RANGE", "source": "userInput", "prompt": "What time of day? (e.g., morning, noon, evening)"}
+        ],
+        "query_type": "sql",
+        "template": "SELECT mt.name FROM medication_tasks mt JOIN medication_task_rules r ON mt.med_task_uuid = r.med_task_uuid WHERE mt.assignee_uuid = @user_uuid AND r.start_time BETWEEN @start_time AND @end_time AND mt.status NOT IN ('deleted', 'completed');",
+        "response_template": "For the {{time_of_day}}, you should take: {{#each results}}{{name}}; {{/each}}{{^results}}You have no medications scheduled for that time.{{/results}}"
+    },
+    {
+        "intent": "LIST_PENDING_REQUESTS",
+        "description": "Fetches all pending task requests for a user.",
+        "keywords": ["pending requests", "new task requests", "approvals"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT pr.request_uuid, pr.task_data, u.DisplayName as sender_display_name FROM pending_tasks pr JOIN Users u ON pr.sender_uuid = u.user_uuid WHERE pr.assignee_uuid = @user_uuid AND pr.status = 'pending';",
+        "response_template": "You have {{results.length}} pending request(s): {{#each results}} - From {{sender_display_name}} (ID: {{request_uuid}}). {{/each}}{{^results}}You have no pending requests.{{/results}}"
+    },
+    {
+        "intent": "COUNT_PENDING_REQUESTS",
+        "description": "Counts the number of pending task requests.",
+        "keywords": ["how many pending requests", "do I have any approvals"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT COUNT(*) as request_count FROM pending_tasks WHERE assignee_uuid = @user_uuid AND status = 'pending';",
+        "response_template": "You have {{results.0.request_count}} pending task requests."
+    },
+    {
+        "intent": "LIST_SENT_REQUESTS",
+        "description": "Shows requests sent by the current user to others.",
+        "keywords": ["sent requests", "tasks I assigned", "check my sent tasks"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT pr.status, u.DisplayName as assignee_display_name FROM pending_tasks pr JOIN Users u ON pr.assignee_uuid = u.user_uuid WHERE pr.sender_uuid = @user_uuid;",
+        "response_template": "Here are the requests you've sent: {{#each results}} - Request to {{assignee_display_name}} has status: {{status}}. {{/each}}{{^results}}You have not sent any task requests.{{/results}}"
+    },
+    {
+        "intent": "LIST_ACCEPTED_SENT_REQUESTS",
+        "description": "Shows only the sent requests that have been accepted.",
+        "keywords": ["which requests were accepted", "show my accepted tasks"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT u.DisplayName as assignee_display_name, pr.task_data FROM pending_tasks pr JOIN Users u ON pr.assignee_uuid = u.user_uuid WHERE pr.sender_uuid = @user_uuid AND pr.status = 'accepted';",
+        "response_template": "These assignees have accepted your tasks: {{#each results}}{{assignee_display_name}}; {{/each}}{{^results}}None of your sent requests have been accepted yet.{{/results}}"
+    },
+    {
+        "intent": "LIST_DECLINED_SENT_REQUESTS",
+        "description": "Shows only the sent requests that have been declined.",
+        "keywords": ["which requests were declined", "show my rejected tasks"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT u.DisplayName as assignee_display_name, pr.task_data FROM pending_tasks pr JOIN Users u ON pr.assignee_uuid = u.user_uuid WHERE pr.sender_uuid = @user_uuid AND pr.status = 'declined';",
+        "response_template": "These assignees have declined your tasks: {{#each results}}{{assignee_display_name}}; {{/each}}{{^results}}None of your sent requests have been declined.{{/results}}"
+    },
+    {
+        "intent": "SEARCH_USER_BY_USERNAME",
+        "description": "Searches for a user by their username.",
+        "keywords": ["find user", "search for user", "look up user"],
+        "parameters": [
+            { "name": "actor_uuid", "type": "UUID", "source": "currentUser" },
+            { "name": "username", "type": "STRING", "source": "userInput", "prompt": "What username are you looking for?" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT u.Username, u.DisplayName FROM Users u WHERE u.Username LIKE @username AND u.user_uuid != @actor_uuid;",
+        "response_template": "I found these users: {{#each results}}{{DisplayName}} (@{{Username}}); {{/each}}{{^results}}I couldn't find any users with that name.{{/results}}"
+    },
+    {
+        "intent": "LIST_RECENT_CHATS",
+        "description": "Fetches the user's most recent chat conversations.",
+        "keywords": ["show my chats", "recent conversations", "list my messages"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT CASE WHEN c.user1_uuid = @user_uuid THEN u2.DisplayName ELSE u1.DisplayName END as partner_name FROM chats c LEFT JOIN Users u1 ON c.user1_uuid = u1.user_uuid LEFT JOIN Users u2 ON c.user2_uuid = u2.user_uuid INNER JOIN messages m ON c.last_message_id = m.id WHERE (c.user1_uuid = @user_uuid OR c.user2_uuid = @user_uuid) ORDER BY m.sent_at DESC;",
+        "response_template": "Your recent conversations are with: {{#each results}}{{partner_name}}; {{/each}}{{^results}}You have no recent chats.{{/results}}"
+    },
+    {
+        "intent": "COUNT_COMPLETIONS_TODAY",
+        "description": "Counts how many tasks the user has marked as complete today.",
+        "keywords": ["how many tasks did I complete today", "count my completed tasks for today"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT COUNT(tc.completion_uuid) as completion_count FROM task_completions tc JOIN task_test t ON tc.parent_task_uuid = t.task_uuid WHERE t.assignee_uuid = @user_uuid AND tc.task_type = 'task' AND CAST(tc.completed_at AS DATE) = CAST(GETDATE() AS DATE);",
+        "response_template": "You have completed {{results.0.completion_count}} tasks today. Great job!"
+    },
+    {
+        "intent": "CHECK_TASK_COMPLETION_STATUS",
+        "description": "Checks if a specific task has been completed today.",
+        "keywords": ["did I finish", "is task done", "check completion"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" },
+            { "name": "task_name", "type": "STRING", "source": "userInput", "prompt": "Which task do you want to check?"}
+        ],
+        "query_type": "sql",
+        "template": "SELECT COUNT(tc.completion_uuid) as completion_count FROM task_completions tc JOIN task_test t ON tc.parent_task_uuid = t.task_uuid WHERE t.assignee_uuid = @user_uuid AND t.name LIKE @task_name AND tc.task_type = 'task' AND CAST(tc.completed_at AS DATE) = CAST(GETDATE() AS DATE);",
+        "response_template": "{{#if results.0.completion_count}}Yes, you have completed the '{{task_name}}' task today.{{else}}No, you have not completed the '{{task_name}}' task today.{{/if}}"
+    },
+    {
+        "intent": "GET_TASKS_FROM_SENDER",
+        "description": "Lists all tasks assigned by a specific person.",
+        "keywords": ["tasks from", "what did they assign me"],
+        "parameters": [
+            { "name": "user_uuid", "type": "UUID", "source": "currentUser" },
+            { "name": "sender_name", "type": "STRING", "source": "userInput", "prompt": "Who is the sender?" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT t.name FROM task_test t JOIN Users s ON t.sender_uuid = s.user_uuid WHERE t.assignee_uuid = @user_uuid AND s.DisplayName LIKE @sender_name AND t.status NOT IN ('deleted', 'completed');",
+        "response_template": "Tasks from {{sender_name}}: {{#each results}}{{name}}; {{/each}}{{^results}}You have no active tasks from {{sender_name}}.{{/results}}"
+    },
+    {
+        "intent": "GET_PROFILE_FOR_OTHER_USER",
+        "description": "Fetches the public profile for another user.",
+        "keywords": ["show profile for", "who is", "lookup profile"],
+        "parameters": [
+            { "name": "username", "type": "STRING", "source": "userInput", "prompt": "What is their username?" }
+        ],
+        "query_type": "sql",
+        "template": "SELECT u.DisplayName, u.Username, p.avatar_url FROM Users u LEFT JOIN user_avatars p ON u.user_uuid = p.user_uuid WHERE u.Username = @username;",
+        "response_template": "Profile for @{{results.0.Username}}: Display Name is {{results.0.DisplayName}}.{{^results}}I could not find a user with that username.{{/results}}"
+    }
+]

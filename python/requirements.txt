@@ -1,0 +1,9 @@
+numpy
+torch
+scikit-learn
+sentence-transformers
+google-generativeai
+python-dotenv
+openai
+rapidfuzz
+pandas
