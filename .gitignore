@@ -1,0 +1,8 @@
+# Python
+python/venv/
+
+# Node.js
+node_modules/
+
+# Environment files
+.env
