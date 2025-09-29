@@ -1,72 +1,33 @@
 const express = require('express');
-const sql = require('mssql');
-const cors = require('cors');
-const path = require('path');
-
 const app = express();
-app.use(express.json());
+const fs = require('fs');
+const path = require('path');
+const cors = require('cors');
+
 app.use(cors());
+app.use(express.json());
 
-// Настройка для обслуживания статических файлов из папки 'public'
-app.use(express.static(path.join(__dirname, 'public')));
+const admin = require('firebase-admin');
+const serviceAccount = require('./config/service-account-key.json'); // Path to your key
 
-// TODO: Замените на ваши учётные данные из Azure SQL Database.
-// Рекомендуется использовать переменные окружения для безопасности.
-const config = {
-    user: 'umizoomi',
-    password: '{your_password_here}', 
-    server: 'umizoomi.database.windows.net',
-    database: 'umizoomi_sql',
-    options: {
-        encrypt: true, // Требуется для Azure SQL
-        trustServerCertificate: false 
-    }
-};
-
-// Новый маршрут для главной страницы, который теперь является запасным
-app.get('/', (req, res) => {
-    res.status(200).send('Сайт работает!');
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
 });
 
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+// Manually load the prescription route to ensure the correct URL '/api/prescriptions' is used
+const prescriptionRoutes = require('./routes/prescription');
+app.use('/api/prescriptions', prescriptionRoutes);
 
-    // Проверка наличия данных
-    if (!email || !password) {
-        return res.status(400).json({ success: false, message: 'Email и пароль обязательны' });
-    }
-
-    try {
-        await sql.connect(config);
-        const request = new sql.Request();
-        
-        // Используем параметризованные запросы для предотвращения SQL-инъекций
-        request.input('email', sql.NVarChar, email);
-        request.input('password', sql.NVarChar, password); 
-
-        // Запрос к базе данных
-        const result = await request.query('SELECT * FROM Users WHERE Email = @email AND Password = @password');
-        
-        if (result.recordset.length > 0) {
-            res.status(200).json({ success: true, message: 'Вход успешен' });
-        } else {
-            res.status(200).json({ success: false, message: 'Неверный email или пароль' });
-        }
-    } catch (err) {
-    console.error('Ошибка базы данных:', err);
-    res.status(500).json({ success: false, message: 'Ошибка сервера' });
-    } finally {
-        sql.close(); // Всегда закрывайте соединение
+// Dynamically load all other route modules in the routes folder
+const routesPath = path.join(__dirname, 'routes');
+fs.readdirSync(routesPath).forEach((file) => {
+    // Make sure it's a JS file and not the one we already loaded
+    if (file.endsWith('.js') && file !== 'prescription.js') {
+        const routeName = file.replace('.js', '');
+        const routeModule = require(`./routes/${routeName}`);
+        app.use(`/api/${routeName}`, routeModule);
     }
 });
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    console.log(`Сервер Node.js запущен на порту ${PORT}`);
-}).on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error('Ошибка: Порт уже используется. Перезапустите приложение или используйте другой порт.');
-    } else {
-        console.error('Ошибка запуска сервера:', err);
-    }
-});
+app.listen(3000, () => console.log('Server running on port 3000'));
+
