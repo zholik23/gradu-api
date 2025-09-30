@@ -1,8 +1,11 @@
+// Load variables from .env file for local development
+require('dotenv').config({ path: '../.env' });
+
 const config = {
-    user: 'umizoomi',
-    password: 'zholikwws23!',
-    server: 'umizoomi.database.windows.net',
-    database: 'umizoomi_sql',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_DATABASE,
     options: {
         encrypt: true,
         trustServerCertificate: false
