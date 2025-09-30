@@ -1,3 +1,9 @@
+process.on('uncaughtException', (error) => {
+    console.error('--- UNCAUGHT EXCEPTION ---');
+    console.error(error);
+    process.exit(1); // Always exit after a fatal error
+});
+
 const express = require('express');
 const app = express();
 const fs = require('fs');
